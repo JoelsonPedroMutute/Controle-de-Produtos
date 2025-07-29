@@ -11,22 +11,28 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Tabela de usuários
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
+            $table->uuid('id')->primary(); // UUID como chave primáriia
+            $table->string('name', 100);
+            $table->string('email', 150)->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password', 255);
+            $table->string('phone', 20)->nullable();
+            $table->string('address', 255)->nullable();
+            $table->string('role', 20)->default('user'); // Papel do usuário, padrão é 'user'
+            $table->enum('status', ['active', 'inactive', 'peding'])->default('peding'); // Status do usuário
             $table->rememberToken();
-            $table->timestamps();
+            $table->timestampsTz();
+            $table->softDeletesTz(); // Adiciona suporte a soft deletes com fuso horário
         });
-
+        // Tabela de tokens de redefinição de senha
         Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
+           $table->string('email', 255)->primary(); // tamanho fixado para evitar erro no PostgreSQL
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
-
+            // Tabela de sessões
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
