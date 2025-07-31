@@ -3,7 +3,10 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 
 class RegisterUserRequest extends FormRequest
 {
@@ -27,12 +30,22 @@ class RegisterUserRequest extends FormRequest
         'email'   => [
             'required',
             'email',
-            Rule::unique('users', 'email')->ignore($this->route('user')),
+            Rule::unique('users', 'email'), // ← corrigido aqui
         ],
+        'password' => 'required|string|min:6',
         'role'    => 'required|in:user,admin',
-        'status'  => 'required|in:active,inactive,pending',
         'address' => 'nullable|string|max:255',
         'phone'   => 'nullable|string|max:20',
     ];
 }
+    protected function failedValidation(Validator $validator)
+{
+    $errors = $validator->errors();
+
+    throw new HttpResponseException(response()->json([
+        'status' => 'error',
+        'message' => $errors->first(), // primeira mensagem de erro
+    ], 422));
+}
+
 }

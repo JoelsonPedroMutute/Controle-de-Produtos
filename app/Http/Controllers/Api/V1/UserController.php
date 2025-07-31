@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+
 use App\Filters\UserFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangePasswordRequest;
@@ -12,12 +13,18 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash
+use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\UpdateUserByIdRequest;
+use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Bus\DispatchesJobs;
 
 class UserController extends Controller
 {
 
     protected UserService $userService;
+    
 
     public function __construct(UserService $userService)
     {
@@ -37,11 +44,12 @@ class UserController extends Controller
         return response()->json(new UserResource($user));
     }
 
-    public function changePassword(changePasswordReques $request);
-    {
-        $message = $this->UserService->changePassword($request);
-        return response()->json(['message' => $message]);
-    }
+    public function changePassword(ChangePasswordRequest $request)
+{
+    $user = Auth::user();
+    $message = $this->userService->changePassword($user, $request->validated());
+    return response()->json(['message' => $message]);
+}
 
     public function store(StoreUserRequest $request)
     {
@@ -55,36 +63,47 @@ class UserController extends Controller
     public function show($id)
     {
         $this->authorizeAdmin();
-        $user = $this->userService->getUserById($id);
+        $user = $this->userService->getUserById($id, ['stockMoviments']);
+
         return response()->json(new UserResource($user));
     }
 
-    public function update(UpdsateUserRequest $request)
-    {
-        $user = Auth::user();
-        $this->userService->updateUser($user, $request->validated());
+    public function update(UpdateUserRequest $request)
+{
+    $user = Auth::user();
 
+         /** @var \App\Models\User|null $user */
+    if ($user->isAdmin()) {
         return response()->json([
-            'message' => 'Usuário atualizado com sucesso!',
-            'user' => new UserResource($user),
-        ], 200);
+            'error' => 'Admins não podem atualizar seus dados por esta rota.'
+        ], 403);
     }
 
-    public function updateById(UpdateUserByIdRequest $request, $id)
-    {
-       if (auth()->id() == $id) {
-           return response()->json([
-               'error' => ' Admins não podem atualizar seus proprio status, ou role por este endpoint.'
-           ], 403);
-       }
+    $this->userService->updateUser($user, $request->validated());
 
-       $this->authorizeAdmin();
-       User = $this->userSerive->updateUserById($id, $request->validated());
-       return response()->json([
-           'message' => 'Usuário atualizado com sucesso!',
-           'user' => new UserResource($user),
-       ], 200);
+    return response()->json([
+        'message' => 'Usuário atualizado com sucesso!',
+        'user' => new UserResource($user),
+    ], 200);
+}
+
+
+  public function updateById(UpdateUserByIdRequest $request, $id)
+{
+      if ($request->user()?->id == $id) {
+        return response()->json([
+            'error' => 'Admins não podem atualizar seu próprio status ou role por este endpoint.'
+        ], 403);
     }
+
+    $this->authorizeAdmin();
+    $user = $this->userService->updateUserById($id, $request->validated());
+
+    return response()->json([
+        'message' => 'Usuário atualizado com sucesso!',
+        'user' => new UserResource($user),
+    ], 200);
+}
 
     public function destroySelf()
     {
@@ -104,10 +123,12 @@ class UserController extends Controller
         ], 200);
 
  }
-    public funtion restore($id)
+    public function restore($id)
+
     {
         $this->authorizeAdmin();
-        $user = $this->userService->restoreUserById($id);
+        $user = $this->userService->restoreUser($id); // e não restoreUserById
+
         return response()->json([
             'message' => 'Usuário restaurado com sucesso!',
             'user' => new UserResource($user)
@@ -125,13 +146,15 @@ class UserController extends Controller
         ], 200);
     }
 
-     public function authorizeAdmin(): void
-     {
-        $user = Auth::user();
-        if (!$user || !$user->isAdmin()) {
-            abort(403, 'Acesso negado. Você não tem permissão para acessar este recurso.');
-        }
-     }
+   public function authorizeAdmin(): void
+{
+    /** @var \App\Models\User $user */
+    $user = Auth::user();
+
+    if (!$user || !$user->isAdmin()) {
+        abort(403, 'Acesso negado. Você não tem permissão para acessar este recurso.');
+    }
+}
 }
 
 

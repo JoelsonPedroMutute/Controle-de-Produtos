@@ -7,35 +7,42 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Executa a migration (criação das tabelas).
      */
     public function up(): void
     {
         // Tabela de usuários
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary(); // UUID como chave primáriia
+            $table->uuid('id')->primary(); // Chave primária UUID
             $table->string('name', 100);
             $table->string('email', 150)->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password', 255);
+            $table->timestampTz('email_verified_at')->nullable(); // Timestamp com fuso horário
+            $table->string('password');
             $table->string('phone', 20)->nullable();
             $table->string('address', 255)->nullable();
-            $table->string('role', 20)->default('user'); // Papel do usuário, padrão é 'user'
-            $table->enum('status', ['active', 'inactive', 'peding'])->default('peding'); // Status do usuário
+
+            // Campo de função: apenas 'admin' ou 'user'
+            $table->enum('role', ['admin', 'user'])->default('user');
+
+            // Status do usuário com valor padrão 'pending'
+            $table->enum('status', ['active', 'inactive', 'pending'])->default('pending');
+
             $table->rememberToken();
-            $table->timestampsTz();
-            $table->softDeletesTz(); // Adiciona suporte a soft deletes com fuso horário
+            $table->timestampsTz();    // created_at e updated_at com timezone
+            $table->softDeletesTz();   // deleted_at com timezone
         });
-        // Tabela de tokens de redefinição de senha
+
+        // Tabela de redefinição de senha
         Schema::create('password_reset_tokens', function (Blueprint $table) {
-           $table->string('email', 255)->primary(); // tamanho fixado para evitar erro no PostgreSQL
+            $table->string('email', 255)->primary();
             $table->string('token');
-            $table->timestamp('created_at')->nullable();
+            $table->timestampTz('created_at')->nullable();
         });
-            // Tabela de sessões
+
+        // Tabela de sessões
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
+            $table->uuid('user_id')->nullable()->index(); // Ajustado para UUID se referir ao campo da tabela users
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');
@@ -44,12 +51,12 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Reverte a migration (exclusão das tabelas).
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

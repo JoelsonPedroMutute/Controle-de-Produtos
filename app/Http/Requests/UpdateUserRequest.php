@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth; // <- import correto
 
 class UpdateUserRequest extends FormRequest
 {
@@ -22,20 +23,32 @@ class UpdateUserRequest extends FormRequest
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
-    {
-        $userId = $this->route('user'); // ou 'id' dependendo de como está nomeado na rota
+{
+    $authUser = Auth::user();
+    $userId   = $this->route('user'); // pode ser nulo se for /me
 
-        return [
-            'name'    => 'required|string|max:255',
-            'email'   => [
-                'required',
-                'email',
-                Rule::unique('users', 'email')->ignore($userId),
-            ],
-            'role'    => 'required|in:user,admin',
-            'status'  => 'required|in:active,inactive,pending',
-            'address' => 'nullable|string|max:255',
-            'phone'   => 'nullable|string|max:20',
-        ];
-    }
+    $rules = [
+        'name'    => 'required|string|max:255',
+        'email'   => [
+            'required',
+            'email',
+            Rule::unique('users', 'email')->ignore($userId ?? $authUser->id),
+        ],
+        'address' => 'nullable|string|max:255',
+        'phone'   => 'nullable|string|max:20',
+    ];
+
+    // Se for admin E estiver atualizando outro usuário
+    /** @var \App\Models\User|null $user */
+    if (Auth::check() && Auth::user()->role === 'admin') {
+
+    $rules['role'] = 'required|in:user,admin';
+    $rules['status'] = 'sometimes|required|in:active,inactive,pending';
+} else {
+    $rules['role']   = 'sometimes|in:user,admin';
+    $rules['status'] = 'sometimes|in:active,inactive,pending';
+}
+
+    return $rules;
+}
 }

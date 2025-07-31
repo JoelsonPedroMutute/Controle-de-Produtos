@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('_stock_moviment', function (Blueprint $table) {
+        Schema::create('stock_movements', function (Blueprint $table) {
             $table->id();
             $table->uuid('user_id');
             $table->uuid('product_id');
-            $table->enum('type', ['in', 'out','adjustment']);
+            $table->enum('type', ['in', 'out', 'adjustment']);
             $table->string('reason', 100)->nullable();
             $table->decimal('quantity', 10, 2);
             $table->timestampTz('created_at')->useCurrent();
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('_stock_moviment');
+        Schema::dropIfExists('stock_movements');
     }
 };

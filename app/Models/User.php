@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -17,12 +19,20 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     // Traits que adicionam funcionalidades ao modelo
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasUuids;
 
-    /**
-     * Atributos que podem ser preenchidos via mass assignment.
-     * Protege contra falhas de segurança ao usar create() ou update().
-     */
+    // <-- ESTA PARTE FOI ADICIONADA
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->{$model->getKeyName()})) {
+                $model->{$model->getKeyName()} = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
+
     protected $fillable = [
         'name',
         'email',
@@ -33,20 +43,11 @@ class User extends Authenticatable
         'address',
     ];
 
-   /**
-     * Atributos que devem ser ocultados ao serializar (ex: JSON).
-     * Protege dados sensíveis como senhas.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-   /**
-     * Converte atributos para tipos nativos.
-     * O campo 'email_verified_at' é tratado como datetime.
-     * O campo 'password' será automaticamente criptografado ao ser salvo.
-     */
     protected function casts(): array
     {
         return [
@@ -54,20 +55,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    /**
-     * Verifica se o usuário é um administrador.
-     * Retorna true se o papel do usuário for 'admin', false caso contrário.
-     */ 
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-
-    /**
-     * Relacionamento com o modelo stockMovements.
-     * Um usuário pode ter muitos stockMovements associados.
-     */
     public function stockMovements()
     {
         return $this->hasMany(StockMoviment::class);

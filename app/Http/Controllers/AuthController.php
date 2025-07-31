@@ -3,10 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterUserRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
+
+
 
 class AuthController extends Controller
 {
@@ -24,24 +28,26 @@ class AuthController extends Controller
             ], 422);
         }
 
+        $validated = $request->validated();
         // Define o role como 'user' se não for enviado
-        $data['role'] = $request->input('role', 'user');
+        $status = $validated['role'] === 'admin' ? 'active' : 'pending';
 
         $user = User::create([
+            'id' => Str::uuid(),
             'name' => $data['name'],
             'email' => $data['email'],
-            'password' => bcrypt($data['password']),
+            'password'=> Hash::make($data['password']),
             'role' => $data['role'],
             'phone' => $data['phone'] ?? null,
             'address' => $data['address'] ?? null,
-            'status' => 'pending', // status inicial
+            'status' => $status, // status inicial
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Usuário registrado com sucesso.',
-            'user' => $user,
+            'user' => new UserResource($user),
             'token' => $token,
         ], 201);
     }
@@ -74,7 +80,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login realizado com sucesso.',
-            'user' => $user,
+            'user' => new UserResource($user),
             'token' => $token,
         ], 200);
     }
