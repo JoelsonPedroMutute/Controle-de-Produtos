@@ -34,18 +34,39 @@ class UserController extends Controller
 
     public function index(Request $request, UserFilter $filter)
     {
+        
         $this->authorizeAdmin();
         $users = $this->userService->getAllFiltered($filter, $request);
         return response()->json(UserResource::collection($users));
     }
+
     public function profile()
     {
+
+        $user = Auth::user();
+    /** @var \App\Models\User|null $user */
+    // Verifica se o usuário é admin e retorna erro se for
+    if ($user && $user->isAdmin()) {
+        return response()->json([
+            'error' => 'Admins não podem acessar esta rota.'
+        ], 403);
+    }
+
         $user = Auth::user();
         return response()->json(new UserResource($user));
     }
 
     public function changePassword(ChangePasswordRequest $request)
 {
+    $user = Auth::user();
+    /** @var \App\Models\User|null $user */
+    // Verifica se o usuário é admin e retorna erro se for
+    if ($user && $user->isAdmin()) {
+        return response()->json([
+            'error' => 'Admins não podem acessar esta rota.'
+        ], 403);
+    }
+
     $user = Auth::user();
     $message = $this->userService->changePassword($user, $request->validated());
     return response()->json(['message' => $message]);
@@ -107,6 +128,16 @@ class UserController extends Controller
 
     public function destroySelf()
     {
+         $user = Auth::user();
+    /** @var \App\Models\User|null $user */
+
+    // Verifica se o usuário é admin e retorna erro se for
+
+    if ($user && $user->isAdmin()) {
+        return response()->json([
+            'error' => 'Admins não podem acessar esta rota.'
+        ], 403);
+    }
         $user = Auth::user();
         $this->userService->deleteUser($user);
         return response()->json([
@@ -134,17 +165,21 @@ class UserController extends Controller
             'user' => new UserResource($user)
         ], 200);
     }
-    public function updateStatus(Request $request, $id)
-    {
-        $this->authorizeAdmin();
-        $user = $this->userService->updateUserStatus($id, $request->validated([
-            'status' => 'required|in:active,inactive,pending',
-        ]));
-        return response()->json([
-            'message' => 'Status do usuário atualizado com sucesso!',
-            'user' => new UserResource($user)
-        ], 200);
-    }
+   public function updateStatus(Request $request, $id)
+{
+    $user = $this->userService->getUserById($id); // ou User::findOrFail($id);
+
+    $this->authorize('updateStatus', $user); // ✅ ESTA LINHA É ESSENCIAL
+
+    $user = $this->userService->updateUserStatus($id, $request->validate([
+        'status' => 'required|in:active,inactive,pending',
+    ]));
+
+    return response()->json([
+        'message' => 'Status do usuário atualizado com sucesso!',
+        'user' => new UserResource($user)
+    ], 200);
+}
 
    public function authorizeAdmin(): void
 {
@@ -156,5 +191,3 @@ class UserController extends Controller
     }
 }
 }
-
-

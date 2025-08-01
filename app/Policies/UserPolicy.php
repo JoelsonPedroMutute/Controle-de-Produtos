@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Policies;
 
 use App\Models\User;
@@ -7,7 +6,7 @@ use App\Models\User;
 class UserPolicy
 {
     /**
-     * Se for admin, libera tudo — exceto em casos tratados abaixo.
+     * Atalho: se for admin, libera tudo.
      */
     public function before(User $user, string $ability): bool|null
     {
@@ -23,7 +22,7 @@ class UserPolicy
     }
 
     /**
-     * Apenas admins criam novos usuários.
+     * Só admins criam novos usuários.
      */
     public function create(User $user): bool
     {
@@ -31,24 +30,19 @@ class UserPolicy
     }
 
     /**
-     * Usuário pode atualizar seu perfil, e admin pode atualizar qualquer um, exceto ele mesmo.
+     * Usuário pode atualizar o próprio perfil.
      */
     public function update(User $user, User $model): bool
     {
-        if ($user->id === $model->id) {
-            return true; // atualizando a si mesmo
-        }
-
-        return $user->role === 'admin' && $user->id !== $model->id;
+        return $user->id === $model->id;
     }
 
-    /**
-     * Só admins podem alterar status de outros, mas nunca o próprio.
-     */
-    public function updateStatus(User $user, User $model): bool
-    {
-        return $user->role === 'admin' && $user->id !== $model->id;
-    }
+    public function updateStatus(User $authUser, User $targetUser): bool
+{
+    // Apenas admins podem atualizar o status de outros usuários
+    return $authUser->role === 'admin';
+}
+
 
     /**
      * Usuário pode deletar a si mesmo.
@@ -59,7 +53,7 @@ class UserPolicy
     }
 
     /**
-     * Restauração de usuários: só admins.
+     * Restauração: só admins.
      */
     public function restore(User $user, User $model): bool
     {
@@ -72,13 +66,5 @@ class UserPolicy
     public function forceDelete(User $user, User $model): bool
     {
         return $user->role === 'admin';
-    }
-
-    /**
-     * Trocar senha: o próprio usuário.
-     */
-    public function changePassword(User $user, User $model): bool
-    {
-        return $user->id === $model->id;
     }
 }

@@ -17,40 +17,45 @@ class AuthController extends Controller
     /**
      * Realiza o registro de um novo usuário.
      */
-    public function register(RegisterUserRequest $request)
-    {
-        $data = $request->validated();
+   public function register(RegisterUserRequest $request)
+{
+    $data = $request->validated();
 
-        // Verifica se o e-mail já está em uso
-        if (User::where('email', $data['email'])->exists()) {
-            return response()->json([
-                'message' => 'O e-mail já está em uso.',
-            ], 422);
-        }
-
-        $validated = $request->validated();
-        // Define o role como 'user' se não for enviado
-        $status = $validated['role'] === 'admin' ? 'active' : 'pending';
-
-        $user = User::create([
-            'id' => Str::uuid(),
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password'=> Hash::make($data['password']),
-            'role' => $data['role'],
-            'phone' => $data['phone'] ?? null,
-            'address' => $data['address'] ?? null,
-            'status' => $status, // status inicial
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
+    // Verifica se o e-mail já está em uso
+    if (User::where('email', $data['email'])->exists()) {
         return response()->json([
-            'message' => 'Usuário registrado com sucesso.',
-            'user' => new UserResource($user),
-            'token' => $token,
-        ], 201);
+            'message' => 'O e-mail já está em uso.',
+        ], 422);
     }
+
+    $isFirstAdmin = User::where('role', 'admin')->count() === 0;
+
+    // Se for admin e for o primeiro, já ativa. Senão, pendente.
+    $status = ($data['role'] === 'admin' && $isFirstAdmin)
+        ? 'active'
+        : 'pending';
+
+    $user = User::create([
+        'id' => Str::uuid(),
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password'=> Hash::make($data['password']),
+        'role' => $data['role'],
+        'phone' => $data['phone'] ?? null,
+        'address' => $data['address'] ?? null,
+        'status' => $status,
+    ]);
+
+    $token = $user->status === 'active'
+        ? $user->createToken('auth_token')->plainTextToken
+        : null;
+
+    return response()->json([
+        'message' => 'Usuário registrado com sucesso.',
+        'user' => new UserResource($user),
+        'token' => $token,
+    ], 201);
+}
 
     /**
      * Realiza o login do usuário com e-mail e senha.
