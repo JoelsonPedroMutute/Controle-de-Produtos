@@ -111,11 +111,10 @@ class UserService
 }
 
 
-    public function getAllFiltered(UserFilter $filter, Request $request): LengthAwarePaginator
-
+    public function getAllFiltered(UserFilter $filter): LengthAwarePaginator
     {
         $query = User::query();
-        return $filter->apply($query, $request->all())->paginate(10);
+        return $filter->apply($query)->paginate(10);
     }
     
     public function changePassword(User $user, array $data): string

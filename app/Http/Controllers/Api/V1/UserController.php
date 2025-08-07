@@ -9,6 +9,7 @@ use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use App\Http\Resources\StockMovimentResource;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class UserController extends Controller
     {
         
         $this->authorizeAdmin();
-        $users = $this->userService->getAllFiltered($filter, $request);
+        $users = $this->userService->getAllFiltered($filter);
         return response()->json(UserResource::collection($users));
     }
 
@@ -84,7 +85,7 @@ class UserController extends Controller
     public function show($id)
     {
         $this->authorizeAdmin();
-        $user = $this->userService->getUserById($id, ['stockMoviments']);
+        $user = $this->userService->getUserById($id, ['stockMovements']);
 
         return response()->json(new UserResource($user));
     }
@@ -152,8 +153,21 @@ class UserController extends Controller
         return response()->json([
             'message' => $message
         ], 200);
-
- }
+    }
+    
+    public function forceDelete($id)
+    {
+        $this->authorizeAdmin();
+        $user = User::withTrashed()->findOrFail($id);
+        
+        $this->authorize('forceDelete', $user);
+        
+        $user->forceDelete();
+        
+        return response()->json([
+            'message' => 'Usuário excluído permanentemente com sucesso!'
+        ], 200);
+    }
     public function restore($id)
 
     {
@@ -189,5 +203,34 @@ class UserController extends Controller
     if (!$user || !$user->isAdmin()) {
         abort(403, 'Acesso negado. Você não tem permissão para acessar este recurso.');
     }
+}
+
+   public function stockMoviments($id)
+   {
+       $this->authorizeAdmin();
+       $user = $this->userService->getUserById($id, ['stockMovements']);
+       
+       return response()->json([
+           'user' => new UserResource($user),
+           'stock_movements' => StockMovimentResource::collection($user->stockMovements)
+       ]);
+   }
+
+   public function changeRole(Request $request, $id)
+{
+    $this->authorizeAdmin();
+    $user = $this->userService->getUserById($id);
+    
+    $data = $request->validate([
+        'role' => 'required|in:admin,user',
+    ]);
+    
+    $user->role = $data['role'];
+    $user->save();
+    
+    return response()->json([
+        'message' => 'Função do usuário atualizada com sucesso!',
+        'user' => new UserResource($user)
+    ], 200);
 }
 }

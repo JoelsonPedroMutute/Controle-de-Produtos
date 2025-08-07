@@ -29,22 +29,22 @@ Route::prefix('v1')->group(function () {
             Route::get('/', [UserController::class, 'profile']);
             Route::put('/', [UserController::class, 'update']);
             Route::delete('/', [UserController::class, 'destroySelf']);
-            Route::patch('/change-password', [UserController::class, 'changePasswordSelf']);
+            Route::patch('/change-password', [UserController::class, 'changePassword']);
             //  Route::get('user/stock-moviments', [UserController::class, 'stockMovimentsSelf']);
         });
 
         // Rotas administrativas (prefixo completo: /api/v1/admin/users)
        Route::middleware('is.admin')->prefix('admin/users')->group(function () {
-    Route::get('/', [UserController::class, 'allUsers']);
+    Route::get('/', [UserController::class, 'index']);
         Route::post('/', [UserController::class, 'store']);
-        Route::get('/{id}', [UserController::class, 'showById']);
+        Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'updateById']);
         Route::delete('/{id}', [UserController::class, 'destroy']);
         Route::delete('/{id}/force', [UserController::class, 'forceDelete']);
 
     Route::patch('/{id}/restore', [UserController::class, 'restore']); 
         Route::patch('/{id}/role', [UserController::class, 'changeRole']);
-        Route::patch('/{id}/status', [UserController::class, 'changeStatus']);
+        Route::patch('/{id}/status', [UserController::class, 'updateStatus']);
         Route::patch('/{id}/password', [UserController::class, 'changePassword']);
         Route::get('/{id}/stock-moviments', [UserController::class, 'stockMoviments']);
 });

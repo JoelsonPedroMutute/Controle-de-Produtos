@@ -21,9 +21,9 @@ class UserResource extends JsonResource
             'email'          => $this->email,
             'role'           => $this->role,
             'status'        => $this->status,         
-            // Relacionamento com StockMoviments
-            'stock_moviments' => StockMovimentResource::collection(
-                $this->whenLoaded('stockMoviments')
+            // Relacionamento com StockMovements
+            'stock_movements' => StockMovimentResource::collection(
+                $this->whenLoaded('stockMovements')
             ),
         ];
     }
