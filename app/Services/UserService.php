@@ -31,7 +31,7 @@ class UserService
 }
 
 
-    public function updateUserById(int $id, array $data): ?User
+   public function updateUserById(string $id, array $data): ?User
     {
         $authUser = Auth::user();
         if($authUser->id == $id)
@@ -65,8 +65,8 @@ class UserService
     $user->update($data);
         }
 
-    
-    public function deleteUserById(int $id): string
+
+    public function deleteUserById(int|string $id): string
     {
 
         $user = User::findOrFail($id);
@@ -82,7 +82,7 @@ class UserService
         return 'Usuário deletado com sucesso.';
     }
 
-    public function restoreUser(int $id): User
+    public function restoreUser(int|string $id): User
 {
     $user = User::withTrashed()->findOrFail($id);
 
@@ -105,16 +105,17 @@ class UserService
         return $user;
     }
 
-   public function getUserById(int $id, array $with = []): User
+   public function getUserById(int|string $id, array $with = []): User
 {
     return User::with($with)->findOrFail($id);
 }
 
 
-    public function getAllFiltered(UserFilter $filter): LengthAwarePaginator
+    public function getAllFiltered(UserFilter $filter, Request $request): LengthAwarePaginator
+
     {
         $query = User::query();
-        return $filter->apply($query)->paginate(10);
+        return $filter->apply($query, $request->all())->paginate(10);
     }
     
     public function changePassword(User $user, array $data): string

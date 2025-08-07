@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
+use App\Filters\QueryFilter;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -65,4 +66,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(StockMoviment::class);
     }
+   
+   public function scopeFilter($query, QueryFilter $filters)
+{
+    return $filters->apply($query);
+}
+
 }
