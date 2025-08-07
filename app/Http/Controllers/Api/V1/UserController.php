@@ -19,6 +19,7 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
@@ -32,13 +33,14 @@ class UserController extends Controller
         $this->userService = $userService;
     }
 
-    public function index(Request $request, UserFilter $filter)
-    {
-        
-        $this->authorizeAdmin();
-        $users = $this->userService->getAllFiltered($filter, $request);
-        return response()->json(UserResource::collection($users));
-    }
+ public function index(Request $request, UserFilter $filter)
+{
+     
+    $users = $this->userService->getAllFiltered($filter);
+    return UserResource::collection($users);
+}
+
+
 
     public function profile()
     {
@@ -55,6 +57,14 @@ class UserController extends Controller
         $user = Auth::user();
         return response()->json(new UserResource($user));
     }
+     
+public function allUsers()
+{
+    $users = User::all(); // ou pode vir do seu service
+    return UserResource::collection($users); // ✅ Isso filtra os campos
+}
+
+
 
     public function changePassword(ChangePasswordRequest $request)
 {
@@ -88,6 +98,17 @@ class UserController extends Controller
 
         return response()->json(new UserResource($user));
     }
+
+    public function showById(string $id): \Illuminate\Http\JsonResponse
+{
+    $user = $this->userService->getUserById($id);
+
+    return response()->json([
+        'message' => 'Usuário encontrado com sucesso!',
+        'user' => new UserResource($user),
+    ]);
+}
+
 
     public function update(UpdateUserRequest $request)
 {
@@ -165,6 +186,28 @@ class UserController extends Controller
             'user' => new UserResource($user)
         ], 200);
     }
+
+   public function changeRole(Request $request, $id)
+{
+    $this->authorizeAdmin(); // Só admins podem alterar cargos
+
+    $request->validate([
+        'role' => 'required|in:admin,user', // ajuste os valores conforme seu app
+    ]);
+
+    $user = $this->userService->getUserById($id);
+
+    $user->role = $request->role;
+    $user->save();
+
+    return response()->json([
+        'message' => 'Cargo atualizado com sucesso.',
+        'user' => new UserResource($user),
+    ]);
+}
+
+
+
    public function updateStatus(Request $request, $id)
 {
     $user = $this->userService->getUserById($id); // ou User::findOrFail($id);

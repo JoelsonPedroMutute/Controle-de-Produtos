@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\StockMovement;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class StockMoviment extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
 
 

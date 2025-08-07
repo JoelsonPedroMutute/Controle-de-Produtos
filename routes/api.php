@@ -44,7 +44,7 @@ Route::prefix('v1')->group(function () {
 
     Route::patch('/{id}/restore', [UserController::class, 'restore']); 
         Route::patch('/{id}/role', [UserController::class, 'changeRole']);
-        Route::patch('/{id}/status', [UserController::class, 'changeStatus']);
+        Route::patch('/{id}/status', [UserController::class, 'updateStatus']);
         Route::patch('/{id}/password', [UserController::class, 'changePassword']);
         Route::get('/{id}/stock-moviments', [UserController::class, 'stockMoviments']);
 });

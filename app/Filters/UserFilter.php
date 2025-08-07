@@ -3,43 +3,54 @@
 namespace App\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
 
-class UserFilter
+class UserFilter extends QueryFilter
 {
-    protected Request $request;
-    protected Builder $query;
+    public function applyFilters(): Builder
+{
+    $this->filterByStatus();
+    $this->filterByDeleted();
+    $this->filterByRole();
+    $this->filterByEmail();
+    $this->filterByName();
 
-    public function __construct(Request $request)
-    {
-        $this->request = $request;
-    }
+    return $this->query;
+}
 
-    public function apply(Builder $query): Builder
-    {
-        $this->query = $query;
 
-        $this->filterByStatus();
-        $this->filterByDeleted();
-        $this->filterByRole();
-        $this->filterByEmail();
-        $this->filterByName();
+ protected function filterByStatus(): void
+{
+    dd([
+        'request_full' => $this->request,
+        'param_status' => $this->request('status'),
+    ]);
+    // Verifica se o status foi passado na requisição
+    $status = $this->request('status');
+      
 
-        return $this->query;
-    }
+    $allowed = ['active', 'inactive', 'pending'];
 
-    protected function filterByStatus(): void
-    {
-        $status = $this->request->get('status');
-
-        if (in_array($status, ['active', 'inactive', 'pending'])) {
+    if (is_array($status)) {
+        $status = array_map('strtolower', $status);
+        $valid = array_intersect($status, $allowed);
+        if (!empty($valid)) {
+            $this->query->whereIn('status', $valid);
+        }
+    } elseif (is_string($status)) {
+        $status = strtolower($status);
+        if (in_array($status, $allowed)) {
             $this->query->where('status', $status);
         }
     }
+}
+
+
+
+
 
     protected function filterByDeleted(): void
     {
-        $trashed = $this->request->get('trashed');
+        $trashed = $this->request('trashed');
 
         if ($trashed === 'only') {
             $this->query->onlyTrashed();
@@ -52,7 +63,7 @@ class UserFilter
 
     protected function filterByRole(): void
     {
-        $role = $this->request->get('role');
+        $role = $this->request('role');
 
         if (in_array($role, ['user', 'admin'])) {
             $this->query->where('role', $role);
@@ -61,15 +72,11 @@ class UserFilter
 
     protected function filterByEmail(): void
     {
-        if ($email = $this->request->get('email')) {
-            $this->query->where('email', 'LIKE', "%{$email}%");
-        }
+        $this->addLike('email', $this->request('email'));
     }
 
     protected function filterByName(): void
     {
-        if ($name = $this->request->get('name')) {
-            $this->query->where('name', 'LIKE', "%{$name}%");
-        }
+        $this->addLike('name', $this->request('name'));
     }
 }
