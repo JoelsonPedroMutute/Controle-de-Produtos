@@ -20,10 +20,6 @@ class UserFilter extends QueryFilter
 
  protected function filterByStatus(): void
 {
-    dd([
-        'request_full' => $this->request,
-        'param_status' => $this->request('status'),
-    ]);
     // Verifica se o status foi passado na requisição
     $status = $this->request('status');
       

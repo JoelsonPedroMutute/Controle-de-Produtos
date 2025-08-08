@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-
 use App\Filters\UserFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangePasswordRequest;
@@ -14,13 +13,7 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\UpdateUserByIdRequest;
-use Illuminate\Routing\Controller as BaseController;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Foundation\Bus\DispatchesJobs;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
@@ -44,17 +37,15 @@ class UserController extends Controller
 
     public function profile()
     {
-
         $user = Auth::user();
-    /** @var \App\Models\User|null $user */
-    // Verifica se o usuário é admin e retorna erro se for
-    if ($user && $user->isAdmin()) {
-        return response()->json([
-            'error' => 'Admins não podem acessar esta rota.'
-        ], 403);
-    }
+        /** @var \App\Models\User|null $user */
+        // Verifica se o usuário é admin e retorna erro se for
+        if ($user && $user->isAdmin()) {
+            return response()->json([
+                'error' => 'Admins não podem acessar esta rota.'
+            ], 403);
+        }
 
-        $user = Auth::user();
         return response()->json(new UserResource($user));
     }
      
@@ -67,20 +58,19 @@ public function allUsers()
 
 
     public function changePassword(ChangePasswordRequest $request)
-{
-    $user = Auth::user();
-    /** @var \App\Models\User|null $user */
-    // Verifica se o usuário é admin e retorna erro se for
-    if ($user && $user->isAdmin()) {
-        return response()->json([
-            'error' => 'Admins não podem acessar esta rota.'
-        ], 403);
-    }
+    {
+        $user = Auth::user();
+        /** @var \App\Models\User|null $user */
+        // Verifica se o usuário é admin e retorna erro se for
+        if ($user && $user->isAdmin()) {
+            return response()->json([
+                'error' => 'Admins não podem acessar esta rota.'
+            ], 403);
+        }
 
-    $user = Auth::user();
-    $message = $this->userService->changePassword($user, $request->validated());
-    return response()->json(['message' => $message]);
-}
+        $message = $this->userService->changePassword($user, $request->validated());
+        return response()->json(['message' => $message]);
+    }
 
     public function store(StoreUserRequest $request)
     {
@@ -149,17 +139,16 @@ public function allUsers()
 
     public function destroySelf()
     {
-         $user = Auth::user();
-    /** @var \App\Models\User|null $user */
-
-    // Verifica se o usuário é admin e retorna erro se for
-
-    if ($user && $user->isAdmin()) {
-        return response()->json([
-            'error' => 'Admins não podem acessar esta rota.'
-        ], 403);
-    }
         $user = Auth::user();
+        /** @var \App\Models\User|null $user */
+
+        // Verifica se o usuário é admin e retorna erro se for
+        if ($user && $user->isAdmin()) {
+            return response()->json([
+                'error' => 'Admins não podem acessar esta rota.'
+            ], 403);
+        }
+        
         $this->userService->deleteUser($user);
         return response()->json([
             'message' => 'Usuário deletado com sucesso!'
@@ -199,27 +188,6 @@ public function allUsers()
             'user' => new UserResource($user)
         ], 200);
     }
-
-   public function changeRole(Request $request, $id)
-{
-    $this->authorizeAdmin(); // Só admins podem alterar cargos
-
-    $request->validate([
-        'role' => 'required|in:admin,user', // ajuste os valores conforme seu app
-    ]);
-
-    $user = $this->userService->getUserById($id);
-
-    $user->role = $request->role;
-    $user->save();
-
-    return response()->json([
-        'message' => 'Cargo atualizado com sucesso.',
-        'user' => new UserResource($user),
-    ]);
-}
-
-
 
    public function updateStatus(Request $request, $id)
 {
