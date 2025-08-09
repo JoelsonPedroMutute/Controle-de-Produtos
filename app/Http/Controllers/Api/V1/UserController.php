@@ -27,12 +27,16 @@ class UserController extends Controller
         $this->userService = $userService;
     }
 
-    public function index(Request $request, UserFilter $filter)
+    public function index(Request $request)
     {
-        
         $this->authorizeAdmin();
+        $filter = new UserFilter($request);
         $users = $this->userService->getAllFiltered($filter, $request);
-        return response()->json(UserResource::collection($users));
+
+        return response()->json([
+            'message' => 'Usuários encontrados',
+            'data' => UserResource::collection($users)
+        ]);
     }
 
     public function profile()
@@ -222,9 +226,11 @@ public function allUsers()
        
        return response()->json([
            'user' => new UserResource($user),
-           'stock_movements' => StockMovimentResource::collection($user->stockMovements)
-       ]);
-   }
+             'stock_movements' => StockMovimentResource::collection($user->stockMovements)
+        ]);
+    }
+
+
 
    public function changeRole(Request $request, $id)
 {

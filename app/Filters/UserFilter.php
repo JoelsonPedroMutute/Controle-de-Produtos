@@ -18,22 +18,25 @@ class UserFilter extends QueryFilter
 }
 
 
- protected function filterByStatus(): void
+protected function filterByStatus(): void
 {
-    // Verifica se o status foi passado na requisição
     $status = $this->request('status');
-      
+    
+    if (!$status) {
+        return;
+    }
 
     $allowed = ['active', 'inactive', 'pending'];
 
     if (is_array($status)) {
-        $status = array_map('strtolower', $status);
+        // Normaliza para lowercase e filtra apenas valores válidos
+        $status = array_map('strtolower', array_filter($status));
         $valid = array_intersect($status, $allowed);
         if (!empty($valid)) {
             $this->query->whereIn('status', $valid);
         }
-    } elseif (is_string($status)) {
-        $status = strtolower($status);
+    } else {
+        $status = strtolower(trim($status));
         if (in_array($status, $allowed)) {
             $this->query->where('status', $status);
         }

@@ -36,6 +36,9 @@ Route::prefix('v1')->group(function () {
         // Rotas administrativas (prefixo completo: /api/v1/admin/users)
        Route::middleware('is.admin')->prefix('admin/users')->group(function () {
     Route::get('/', [UserController::class, 'index']);
+    
+
+    
         Route::post('/', [UserController::class, 'store']);
         Route::get('/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'updateById']);
