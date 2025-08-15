@@ -97,7 +97,7 @@ class UserService
 }
 
 
-    public function updateUserStatus(int $id, array $status): User
+    public function updateUserStatus( $id, array $status): User
     {
         $user = User::findOrFail($id);
         $user->status = $status['status'];
@@ -129,8 +129,13 @@ class UserService
 
     return 'Senha alterada com sucesso.';
     }
-        
-    
+
+   public function updateAdminProfile(User $user, array $data): User 
+{
+    $user->update($data); // Atualiza no banco
+    return $user;
+}
+ 
     
 
 }

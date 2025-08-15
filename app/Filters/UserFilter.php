@@ -44,9 +44,6 @@ protected function filterByStatus(): void
 }
 
 
-
-
-
     protected function filterByDeleted(): void
     {
         $trashed = $this->request('trashed');

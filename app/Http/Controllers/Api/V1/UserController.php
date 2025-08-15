@@ -249,4 +249,44 @@ public function allUsers()
         'user' => new UserResource($user)
     ], 200);
 }
+    public function updateAdminProfile(UpdateUserRequest $request)
+{
+    /** @var  \App\Models\User $user */
+    $user = Auth::user();
+
+    if (!$user->isAdmin()) {
+        return response()->json([
+            "error" => 'Apenas administradores podem acessar esta rota.'
+        ], 403);
+    }
+
+    $this->userService->updateAdminProfile($user, $request->validated());
+
+    return response()->json([
+        "message" => 'Perfil do administrador atualizado com sucesso!',
+        'user' => new UserResource($user),
+    ], 200);
+}
+
+public function adminProfile(Request $request)
+{
+    $user = Auth::user();
+    return response()->json([
+        'success' => true,
+        'data' => new UserResource($user),
+    ], 200);
+}
+
+public function changeAdminPassword(ChangePasswordRequest $request)
+{
+    $this->authorizeAdmin();
+    /** @var  \App\Models\User $admin */
+    $admin = Auth::user();
+    $this->userService->changePassword($admin, $request->validated());
+    return new UserResource($admin);
+}
+
+
+
+
 }

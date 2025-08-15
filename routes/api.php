@@ -34,13 +34,19 @@ Route::prefix('v1')->group(function () {
         });
 
         // Rotas administrativas (prefixo completo: /api/v1/admin/users)
-       Route::middleware('is.admin')->prefix('admin/users')->group(function () {
-    Route::get('/', [UserController::class, 'index']);
+        Route::middleware('is.admin')->prefix('admin/users')->group(function () {
+        Route::get('/', [UserController::class, 'index']);
     
+        // Atualizar perfil do admin autenticado
+        Route::put('user', [UserController::class, 'updateAdminProfile']);
+        Route::get('/admin', [UserController::class, 'indexAdmin']);
+        Route::get('/profile', [UserController::class, 'adminProfile']);
+
 
     
         Route::post('/', [UserController::class, 'store']);
         Route::get('/{id}', [UserController::class, 'show']);
+        Route::get('/admin/{id}', [UserController::class, 'show']);
         Route::put('/{id}', [UserController::class, 'updateById']);
         Route::delete('/{id}', [UserController::class, 'destroy']);
         Route::delete('/{id}/force', [UserController::class, 'forceDelete']);
@@ -49,7 +55,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/{id}/role', [UserController::class, 'changeRole']);
         Route::patch('/{id}/status', [UserController::class, 'updateStatus']);
         Route::patch('/{id}/password', [UserController::class, 'changePassword']);
+        Route::patch('/change-password', [UserController::class, 'changeAdminPassword']);
         Route::get('/{id}/stock-moviments', [UserController::class, 'stockMoviments']);
+
 });
 
     });
