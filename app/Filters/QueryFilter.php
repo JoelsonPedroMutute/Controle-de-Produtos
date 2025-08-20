@@ -18,7 +18,7 @@ abstract class QueryFilter
     public function apply(Builder $query): Builder
     {
         $this->query = $query;
-        return $this->applyFilters(); // você chama a função que de fato implementa os filtros
+        return $this->applyFilters(); 
     }
 
     // novo método que será implementado pelos filhos

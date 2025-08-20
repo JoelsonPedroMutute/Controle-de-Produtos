@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->timestampTz('created_at')->useCurrent();
+            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->softDeletes(); 
+            $table->timestampsTz(); 
+
         });
     }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
@@ -61,4 +62,21 @@ Route::prefix('v1')->group(function () {
 });
 
     });
+
+// Rotas para categorias
+Route::prefix('categories')->middleware(['auth:sanctum', 'active.user'])->group(function () {
+    // Cliente -> apenas categorias ativas
+    Route::get('/', [CategoryController::class, 'index']);
+    Route::get('/{id}', [CategoryController::class, 'show']);
+    Route::get('/{id}/products', [CategoryController::class, 'products']);
+
+    // Admin pode criar/editar/deletar/restaurar
+    Route::middleware(['is.admin'])->group(function () {
+        Route::post('/', [CategoryController::class, 'store']);
+        Route::patch('/{id}', [CategoryController::class, 'update']);
+        Route::delete('/{id}', [CategoryController::class, 'destroy']);
+        Route::patch('/{id}/restore', [CategoryController::class, 'restore']);
+    });
+});
+
 });
