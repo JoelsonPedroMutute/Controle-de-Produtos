@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Filters\QueryFilter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -32,5 +33,9 @@ class StockMoviment extends Model
         return $this->belongsTo(Product::class);
     }   
 
+     public function scopeFilter($query, QueryFilter $filters)
+{
+    return $filters->apply($query);
 
+}
 }

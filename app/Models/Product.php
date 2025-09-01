@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Filters\QueryFilter;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -42,4 +43,10 @@ class Product extends Model
     {
         return $this->hasMany(StockMoviment::class);
     }
+
+    public function scopeFilter($query, QueryFilter $filters)
+{
+    return $filters->apply($query);
+
+}
 }
