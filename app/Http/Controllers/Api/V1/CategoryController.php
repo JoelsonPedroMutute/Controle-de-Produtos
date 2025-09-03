@@ -113,6 +113,25 @@ class CategoryController extends Controller
         ], 200);
     }
 
+    public function products($id)
+    {
+        $category = Category::with('products')->find($id);
+
+        if (!$category) {
+            return response()->json([
+                'message' => 'Categoria não encontrada'
+            ], 404);
+        }
+
+        $this->authorize('view', $category);
+
+        return response()->json([
+            'message' => 'Produtos da categoria encontrados',
+            'data' => $category->products
+        ], 200);
+    }
+
+ 
     /**
      * Deletar categoria (soft delete)
      */

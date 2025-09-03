@@ -7,19 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Http\Requests\UpdateUserByIdRequest;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\StockMovimentResource;
-use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\UpdateUserByIdRequest;
 
 class UserController extends Controller
 {
-
     protected UserService $userService;
-    
 
     public function __construct(UserService $userService)
     {
@@ -29,7 +26,7 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorizeAdmin();
+        
         $filter = new UserFilter($request);
         $users = $this->userService->getAllFiltered($filter, $request);
 
@@ -39,41 +36,46 @@ class UserController extends Controller
         ]);
     }
 
+    public function allUsers(Request $request)
+{
+   
+    $filter = new UserFilter($request);
+    $users = $this->userService->getAllFiltered($filter, $request);
+    return UserResource::collection($users);
+}
+
     public function profile()
     {
         $user = Auth::user();
-        /** @var \App\Models\User|null $user */
-        // Verifica se o usuário é admin e retorna erro se for
-        if ($user && $user->isAdmin()) {
-            return response()->json([
-                'error' => 'Admins não podem acessar esta rota.'
-            ], 403);
-        }
-
-        return response()->json(new UserResource($user));
+        return response()->json(new UserResource($user), 200);
     }
-     
-public function allUsers()
-{
-    $users = User::all(); // ou pode vir do seu service
-    return UserResource::collection($users); // ✅ Isso filtra os campos
-}
 
-
+    public function adminProfile()
+    {
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser->isAdmin()) {
+            return response()->json(['error' => 'Acesso negado.'], 403);
+        }
+        return response()->json(new UserResource($authUser), 200);
+    }
 
     public function changePassword(ChangePasswordRequest $request)
     {
-        $user = Auth::user();
-        /** @var \App\Models\User|null $user */
-        // Verifica se o usuário é admin e retorna erro se for
-        if ($user && $user->isAdmin()) {
-            return response()->json([
-                'error' => 'Admins não podem acessar esta rota.'
-            ], 403);
-        }
+        $authUser = Auth::user();
+        $message = $this->userService->changePassword($authUser, $request->validated());
+        return response()->json(['message' => $message], 200);
+    }
 
-        $message = $this->userService->changePassword($user, $request->validated());
-        return response()->json(['message' => $message]);
+    public function changeAdminPassword(ChangePasswordRequest $request)
+    {
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser->isAdmin()) {
+            return response()->json(['error' => 'Acesso negado.'], 403);
+        }
+        $message = $this->userService->changePassword($authUser, $request->validated());
+        return response()->json(['message' => $message], 200);
     }
 
     public function store(StoreUserRequest $request)
@@ -82,110 +84,102 @@ public function allUsers()
         return response()->json([
             'message' => 'Usuário criado com sucesso!',
             'user' => new UserResource($user)
-        ], 201 );
+        ], 201);
     }
 
-    public function show($id)
+    public function show($id, Request $request)
     {
-        $this->authorizeAdmin();
-        $user = $this->userService->getUserById($id, ['stockMovements']);
+        
+        $filter = new UserFilter($request);
+        $user = $this->userService->getUserById($id, $filter);
 
         return response()->json(new UserResource($user));
     }
 
-    public function showById(string $id): \Illuminate\Http\JsonResponse
-{
-    $user = $this->userService->getUserById($id);
+    public function showById($id, Request $request)
+    {
+        $filter = new UserFilter($request);
+        $user = $this->userService->getUserById($id, $filter);
 
-    return response()->json([
-        'message' => 'Usuário encontrado com sucesso!',
-        'user' => new UserResource($user),
-    ]);
-}
-
+        return response()->json([
+            'message' => 'Usuário encontrado com sucesso!',
+            'user' => new UserResource($user),
+        ]);
+    }
 
     public function update(UpdateUserRequest $request)
-{
-    $user = Auth::user();
+    {
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
 
-         /** @var \App\Models\User|null $user */
-    if ($user->isAdmin()) {
+        if ($authUser->isAdmin()) {
+            return response()->json([
+                'error' => 'Admins não podem atualizar seus dados por esta rota.'
+            ], 403);
+        }
+
+        $this->userService->updateUser($authUser, $request->validated());
+
         return response()->json([
-            'error' => 'Admins não podem atualizar seus dados por esta rota.'
-        ], 403);
+            'message' => 'Usuário atualizado com sucesso!',
+            'user' => new UserResource($authUser),
+        ], 200);
     }
 
-    $this->userService->updateUser($user, $request->validated());
+    public function updateById(UpdateUserByIdRequest $request, $id)
+    {
+       
 
-    return response()->json([
-        'message' => 'Usuário atualizado com sucesso!',
-        'user' => new UserResource($user),
-    ], 200);
-}
+        if ($request->user()?->id == $id) {
+            return response()->json([
+                'error' => 'Admins não podem atualizar seu próprio status ou role por este endpoint.'
+            ], 403);
+        }
+
+        $user = $this->userService->updateUserById($id, $request->validated());
 
 
-  public function updateById(UpdateUserByIdRequest $request, $id)
-{
-      if ($request->user()?->id == $id) {
         return response()->json([
-            'error' => 'Admins não podem atualizar seu próprio status ou role por este endpoint.'
-        ], 403);
+            'message' => 'Usuário atualizado com sucesso!',
+            'user' => new UserResource($user),
+        ], 200);
     }
-
-    $this->authorizeAdmin();
-    $user = $this->userService->updateUserById($id, $request->validated());
-
-    return response()->json([
-        'message' => 'Usuário atualizado com sucesso!',
-        'user' => new UserResource($user),
-    ], 200);
-}
 
     public function destroySelf()
     {
-        $user = Auth::user();
-        /** @var \App\Models\User|null $user */
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
 
-        // Verifica se o usuário é admin e retorna erro se for
-        if ($user && $user->isAdmin()) {
+        if ($authUser->isAdmin()) {
             return response()->json([
                 'error' => 'Admins não podem acessar esta rota.'
             ], 403);
         }
-        
-        $this->userService->deleteUser($user);
-        return response()->json([
-            'message' => 'Usuário deletado com sucesso!'
-        ], 200);
+
+        $this->userService->deleteUser($authUser);
+        return response()->json(['message' => 'Usuário deletado com sucesso!'], 200);
     }
 
     public function destroy($id)
     {
-        $this->authorizeAdmin();
+        
         $message = $this->userService->deleteUserById($id);
-        return response()->json([
-            'message' => $message
-        ], 200);
+
+        return response()->json(['message' => $message], 200);
     }
-    
+
     public function forceDelete($id)
     {
-        $this->authorizeAdmin();
-        $user = User::withTrashed()->findOrFail($id);
         
-        $this->authorize('forceDelete', $user);
-        
-        $user->forceDelete();
-        
-        return response()->json([
-            'message' => 'Usuário excluído permanentemente com sucesso!'
-        ], 200);
-    }
-    public function restore($id)
+        $message = $this->userService->forceDeleteById($id);
 
+        return response()->json(['message' => $message], 200);
+    }
+
+    public function restore($id)
     {
-        $this->authorizeAdmin();
-        $user = $this->userService->restoreUser($id); // e não restoreUserById
+        
+        $user = $this->userService->restoreUser($id);
 
         return response()->json([
             'message' => 'Usuário restaurado com sucesso!',
@@ -193,100 +187,71 @@ public function allUsers()
         ], 200);
     }
 
-   public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, $id)
+    {
+        
+        $filter = new UserFilter($request);
+        $user = $this->userService->getUserById($id, $filter);
+
+        $user = $this->userService->updateUserStatus($id, $request->validate([
+            'status' => 'required|in:active,inactive,pending',
+        ]));
+
+        return response()->json([
+            'message' => 'Status do usuário atualizado com sucesso!',
+            'user' => new UserResource($user)
+        ], 200);
+    }
+    public function updateAdminProfile(UpdateUserRequest $request)
 {
-    $user = $this->userService->getUserById($id); // ou User::findOrFail($id);
+    $user = $request->user();
 
-    $this->authorize('updateStatus', $user); // ✅ ESTA LINHA É ESSENCIAL
-
-    $user = $this->userService->updateUserStatus($id, $request->validate([
-        'status' => 'required|in:active,inactive,pending',
-    ]));
+    // Chama o serviço, não o método do controller
+    $updatedUser = $this->userService->updateAdminProfile($user, $request->validated());
 
     return response()->json([
-        'message' => 'Status do usuário atualizado com sucesso!',
-        'user' => new UserResource($user)
+        'message' => 'Perfil do admin atualizado com sucesso!',
+        'user' => new UserResource($updatedUser)
     ], 200);
 }
 
-   public function authorizeAdmin(): void
-{
-    /** @var \App\Models\User $user */
-    $user = Auth::user();
 
-    if (!$user || !$user->isAdmin()) {
-        abort(403, 'Acesso negado. Você não tem permissão para acessar este recurso.');
-    }
-}
+    public function stockMoviments($id, Request $request)
+    {
+        
+        $filter = new UserFilter($request);
+        $user = $this->userService->getUserById($id, $filter);
 
-   public function stockMoviments($id)
-   {
-       $this->authorizeAdmin();
-       $user = $this->userService->getUserById($id, ['stockMovements']);
-       
-       return response()->json([
-           'user' => new UserResource($user),
-             'stock_movements' => StockMovimentResource::collection($user->stockMovements)
+        return response()->json([
+            'user' => new UserResource($user),
+            'stock_movements' => StockMovimentResource::collection($user->stockMovements)
         ]);
     }
 
-
-
-   public function changeRole(Request $request, $id)
+    public function changeRole(Request $request, $id)
 {
-    $this->authorizeAdmin();
-    $user = $this->userService->getUserById($id);
-    
-    $data = $request->validate([
-        'role' => 'required|in:admin,user',
+    // Valida que o role exista e seja 'user' ou 'admin'
+    $request->validate([
+        'role' => 'required|in:user,admin',
     ]);
-    
-    $user->role = $data['role'];
-    $user->save();
-    
+
+    // Chama o service para alterar o role do usuário
+    $user = $this->userService->updateRole($id, $request->role);
+
+    // Retorna a resposta JSON usando o resource
     return response()->json([
-        'message' => 'Função do usuário atualizada com sucesso!',
+        'message' => 'Role alterado com sucesso',
         'user' => new UserResource($user)
-    ], 200);
+    ]);
 }
-    public function updateAdminProfile(UpdateUserRequest $request)
-{
-    /** @var  \App\Models\User $user */
+
+    public function stockMovimentsSelf()
+    {
     $user = Auth::user();
-
-    if (!$user->isAdmin()) {
-        return response()->json([
-            "error" => 'Apenas administradores podem acessar esta rota.'
-        ], 403);
-    }
-
-    $this->userService->updateAdminProfile($user, $request->validated());
-
     return response()->json([
-        "message" => 'Perfil do administrador atualizado com sucesso!',
         'user' => new UserResource($user),
-    ], 200);
+        'stock_movements' => StockMovimentResource::collection($user->stockMovements)
+    ]);
 }
-
-public function adminProfile(Request $request)
-{
-    $user = Auth::user();
-    return response()->json([
-        'success' => true,
-        'data' => new UserResource($user),
-    ], 200);
-}
-
-public function changeAdminPassword(ChangePasswordRequest $request)
-{
-    $this->authorizeAdmin();
-    /** @var  \App\Models\User $admin */
-    $admin = Auth::user();
-    $this->userService->changePassword($admin, $request->validated());
-    return new UserResource($admin);
-}
-
-
-
 
 }

@@ -7,6 +7,7 @@ use App\Http\Requests\ChangePasswordRequest;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -66,21 +67,33 @@ class UserService
         }
 
 
-    public function deleteUserById(int|string $id): string
-    {
+public function deleteUserById(int|string $id): string
+{
+    $user = User::find($id);
 
-        $user = User::findOrFail($id);
-
-        if ($user->trashed()) {
-            throw ValidationException::withMessages([
-                'user' => 'Usuário já foi deletado.',
-            ], 422);
-        }
-
-        $user->delete();
-
-        return 'Usuário deletado com sucesso.';
+    if (!$user) {
+        throw ValidationException::withMessages([
+            'user' => 'Usuário não encontrado.',
+        ], 404);
     }
+
+    if ($user->trashed()) {
+        throw ValidationException::withMessages([
+            'user' => 'Usuário já foi deletado.',
+        ], 422);
+    }
+
+    if ($user->status !== 'active') {
+        throw ValidationException::withMessages([
+            'user' => 'Apenas usuários ativos podem ser deletados.',
+        ], 422);
+    }
+
+    $user->delete();
+
+    return 'Usuário deletado com sucesso.';
+}
+
 
     public function restoreUser(int|string $id): User
 {
@@ -105,9 +118,11 @@ class UserService
         return $user;
     }
 
-   public function getUserById(int|string $id, array $with = []): User
+   public function getUserById(int|string $id, UserFilter $filter): User
 {
-    return User::with($with)->findOrFail($id);
+   $query = User::query();
+   $query = $filter->apply($query);
+   return $query->firstOrFail();
 }
 
 
@@ -116,6 +131,12 @@ class UserService
         $query = User::query();
         return $filter->apply($query)->paginate(10);
     }
+
+    public function getAllUsers(): \Illuminate\Database\Eloquent\Collection
+    {
+    return User::all();
+    }
+
     
     public function changePassword(User $user, array $data): string
     {
@@ -130,12 +151,35 @@ class UserService
     return 'Senha alterada com sucesso.';
     }
 
-   public function updateAdminProfile(User $user, array $data): User 
+ public function updateAdminProfile(User $user, array $data): User 
 {
-    $user->update($data); // Atualiza no banco
+    $user->update($data);
     return $user;
 }
- 
-    
 
+
+  public function forceDeleteById(int|string $id): string
+{
+    /** @var \App\Models\User|null $authUser */
+    $authUser = Auth::user();
+
+    if (!$authUser || !$authUser->isAdmin()) {
+        throw ValidationException::withMessages([
+            'user' => 'Apenas administradores podem executar esta ação.'
+        ]);
+    }
+
+    $user = User::withTrashed()->findOrFail($id);
+    $user->forceDelete();
+
+    return 'Usuário deletado permanentemente.';
 }
+  public function updateRole(int|string $id, string $role): User
+{
+    $user = User::findOrFail($id);
+    $user->role = $role;
+    $user->save();
+    return $user;
+}
+}
+

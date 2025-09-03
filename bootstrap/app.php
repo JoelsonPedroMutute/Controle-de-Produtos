@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Middleware que será executado antes dos middlewares padrão da API
         $middleware->api(prepend: [
             EnsureFrontendRequestsAreStateful::class,
+            \App\Http\Middleware\ForceJsonResponse::class,
         ]);
 
         // Alias para usar nos grupos de rotas

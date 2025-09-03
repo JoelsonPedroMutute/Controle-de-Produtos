@@ -11,6 +11,7 @@ class CategoryFilter extends QueryFilter
     {
         $this->filterByName();
         $this->filterByDeleted();
+        $this->filterByStatus();
 
         // Só aplica status se NÃO for cliente
         if (Auth::check() && Auth::user()->role !== 'cliente') {

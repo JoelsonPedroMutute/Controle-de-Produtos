@@ -69,11 +69,12 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['As credenciais informadas não são válidas.'],
-            ]);
-        }
+      if (! $user || ! Hash::check($request->password, $user->password)) {
+    return response()->json([
+        'message' => 'As credenciais informadas não são válidas.'
+    ], 401);
+}
+
 
         if ($user->status !== 'active') {
             return response()->json([

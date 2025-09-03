@@ -35,6 +35,9 @@ class ProductService
      */
     public function create(array $data): Product
     {
+        if (empty($data['status'])) {
+            $data['status'] = 'active'; // Status padrão
+        }
         return Product::create($data);
     }
 
@@ -43,6 +46,10 @@ class ProductService
      */
     public function update(Product $product, array $data): Product
     {
+         if (isset($data['status']) && !in_array($data['status'], ['active', 'inactive'])) {
+            throw new \InvalidArgumentException('Status inválido. Deve ser "active" ou "inactive".');
+        }
+
         $product->update($data);
         return $product;
     }
@@ -52,6 +59,9 @@ class ProductService
      */
     public function delete(Product $product): void
     {
+        if (! $product->exists) {
+            throw new \InvalidArgumentException('Produto não encontrado.');
+        }
         $product->delete();
     }
 
@@ -60,6 +70,9 @@ class ProductService
      */
     public function restore(Product $product): Product
     {
+        if (! $product->trashed()) {
+            throw new \InvalidArgumentException('Produto não está excluído.');
+        }
         $product->restore();
         return $product;
     }
