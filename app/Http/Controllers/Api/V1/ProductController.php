@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Filters\ProductFilter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
-use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
+use LaravelLang\Publisher\Console\Update;
 
 class ProductController extends Controller
 {
@@ -16,16 +17,15 @@ class ProductController extends Controller
 
     public function __construct(ProductService $productService)
     {
-        // Autorização para ver qualquer produto
-        $this->authorize('viewAny', Product::class);
-
+        $this->middleware(['auth:sanctum', 'active.user']);
         $this->productService = $productService;
     }
 
     // Lista produtos com filtros
     public function index(Request $request)
     {
-        $products = $this->productService->findWithFilters($request);
+        $filter = new ProductFilter($request);
+        $products = $this->productService->getAllFiltered($filter, $request);
 
         return response()->json([
             'message' => 'Produtos encontrados',
@@ -33,10 +33,11 @@ class ProductController extends Controller
         ], 200);
     }
 
-    // Mostra um produto específico
-    public function show(Product $product)
+    //  Mostra um produto específico
+    public function show($id, Request $request)
     {
-        $this->authorize('view', $product);
+        $filter = new ProductFilter($request);
+        $product = $this->productService->getById($id, $filter);
 
         return response()->json([
             'message' => 'Produto encontrado',
@@ -44,11 +45,9 @@ class ProductController extends Controller
         ], 200);
     }
 
-    // Cria um novo produto
+    //  Cria um novo produto
     public function store(StoreProductRequest $request)
     {
-        $this->authorize('create', Product::class);
-
         $product = $this->productService->create($request->validated());
 
         return response()->json([
@@ -57,12 +56,10 @@ class ProductController extends Controller
         ], 201);
     }
 
-    // Atualiza um produto existente
-    public function update(UpdateProductRequest $request, Product $product)
+    //  Atualiza um produto existente
+    public function update(UpdateProductRequest $request, $id)
     {
-        $this->authorize('update', $product);
-
-        $product = $this->productService->update($product, $request->validated());
+        $product = $this->productService->update($id, $request->validated());
 
         return response()->json([
             'message' => 'Produto atualizado com sucesso',
@@ -70,35 +67,79 @@ class ProductController extends Controller
         ], 200);
     }
 
-    // Exclui um produto (soft delete)
-    public function destroy(Product $product)
+    //  Atualiza a descrição de um produto existente
+    public function updateDescription(UpdateProductRequest $request, $id)
     {
-        $this->authorize('delete', $product);
-
-        $this->productService->delete($product);
+        $product = $this->productService->update($id, $request->validated());
 
         return response()->json([
-            'message' => 'Produto excluído com sucesso'
-        ], 204);
+            'message' => 'Descrição do produto atualizada com sucesso',
+            'data' => new ProductResource($product)
+        ], 200);
     }
 
-    // Restaura um produto excluído
+    //  Atualiza o status de um produto existente
+    public function updateStatus(UpdateProductRequest $request, $id)
+    {
+        $product = $this->productService->updateStatus($id, $request->validated());
+
+        return response()->json([
+            'message' => 'Status do produto atualizado com sucesso',
+            'data' => new ProductResource($product)
+        ], 200);
+    }
+
+    //  Atualiza o nome de um produto existente
+    public function updateName(UpdateProductRequest $request, $id)
+    {
+        $product = $this->productService->updateName($id, $request->validated());
+
+        return response()->json([
+            'message' => 'Nome do produto atualizado com sucesso',
+            'data' => new ProductResource($product)
+        ], 200);
+    }
+
+    //  Atualiza as categorias de um produto existente
+    public function updateCategories(UpdateProductRequest $request, $id)
+    {
+        $product = $this->productService->updateCategories($id, $request->validated());
+
+        return response()->json([
+            'message' => 'Categorias do produto atualizadas com sucesso',
+            'data' => new ProductResource($product)
+        ], 200);
+    }
+
+    //  Exclui um produto (soft delete)
+    public function destroy($id)
+    {
+        $message = $this->productService->delete($id);
+
+        return response()->json([
+            'message' => $message
+        ], 200);
+    }
+
+    //  Restaura um produto excluído
     public function restore($id)
     {
-        $product = Product::withTrashed()->find($id);
-
-        if (!$product) {
-            return response()->json([
-                'message' => 'Produto não encontrado'
-            ], 404);
-        }
-
-        $this->authorize('restore', $product);
-        $this->productService->restore($product);
+        $product = $this->productService->restore($id);
 
         return response()->json([
             'message' => 'Produto restaurado com sucesso',
             'data' => new ProductResource($product)
         ], 200);
     }
+
+    //  Exclusão permanente
+    public function forceDelete($id)
+    {
+        $message = $this->productService->forceDelete($id);
+
+        return response()->json([
+            'message' => $message
+        ], 200);
+    }
+     
 }

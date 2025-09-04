@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
             Route::patch('/{id}', [CategoryController::class, 'update']);
             Route::delete('/{id}', [CategoryController::class, 'destroy']);
             Route::patch('/{id}/restore', [CategoryController::class, 'restore']);
+            
         });
     });
 
@@ -80,20 +81,30 @@ Route::prefix('v1')->group(function () {
             Route::get('/{id}', [ProductController::class, 'show']);
             Route::get('/{id}/categories', [ProductController::class, 'categories']);
             Route::get('/{id}/stock-moviments', [ProductController::class, 'stockMoviments']);
+            Route::patch('/{id}/status', [ProductController::class, 'updateStatus']);
+            Route::patch('/{id}/description', [ProductController::class, 'updateDescription']);
+            Route::patch('/{id}/name', [ProductController::class, 'updateName']);
+          
+
         });
+
 
         // Admin -> CRUD
         Route::middleware('is.admin')->group(function () {
+            Route::get('/', [ProductController::class, 'index']);
+            Route::get('/{id}', [ProductController::class, 'show']);
             Route::post('/', [ProductController::class, 'store']);
             Route::put('/{id}', [ProductController::class, 'update']);
+            Route::patch('/{id}', [ProductController::class, 'update']);
             Route::delete('/{id}', [ProductController::class, 'destroy']);
             Route::patch('/{id}/restore', [ProductController::class, 'restore']);
             Route::patch('/{id}/status', [ProductController::class, 'updateStatus']);
-            Route::put('/{id}/categories', [ProductController::class, 'updateCategories']);
+            Route::patch('/{id}/categories', [ProductController::class, 'updateCategories']);
             Route::patch('/{id}/price', [ProductController::class, 'updatePrice']);
             Route::patch('/{id}/sku', [ProductController::class, 'updateSku']);
             Route::patch('/{id}/description', [ProductController::class, 'updateDescription']);
             Route::patch('/{id}/name', [ProductController::class, 'updateName']);
+            Route::delete('/{id}/force', [ProductController::class, 'forceDelete']);
         });
     });
 

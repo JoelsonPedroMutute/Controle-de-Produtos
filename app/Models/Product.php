@@ -49,4 +49,12 @@ class Product extends Model
     return $filters->apply($query);
 
 }
+  public function scopeFilterActive($query)
+  {
+    return $query->where('status', 'active')->orderBy('name');
+  }
+   public function scopeFilterInactive($query)
+   {
+       return $query->where('status', 'inactive')->orderBy('name');
+   }
 }

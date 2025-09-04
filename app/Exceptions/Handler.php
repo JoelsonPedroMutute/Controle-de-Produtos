@@ -8,6 +8,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class Handler extends ExceptionHandler
@@ -41,6 +42,7 @@ class Handler extends ExceptionHandler
     public function render($request, Throwable $exception)
     {
         if ($request->expectsJson()) {
+
             // Model não encontrado
             if ($exception instanceof ModelNotFoundException) {
                 $model = class_basename($exception->getModel());
@@ -69,10 +71,20 @@ class Handler extends ExceptionHandler
 
             // Erros de validação
             if ($exception instanceof ValidationException) {
+                // Detecta UUID inválido durante validação
+                $errors = $exception->errors();
+                foreach ($errors as $field => $messages) {
+                    foreach ($messages as $key => $message) {
+                        if (str_contains(strtolower($message), 'invalid input syntax for type uuid')) {
+                            $errors[$field][$key] = 'O identificador informado é inválido.';
+                        }
+                    }
+                }
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Os dados fornecidos são inválidos.',
-                    'errors'  => $exception->errors(),
+                    'errors' => $errors,
                 ], 422);
             }
 
@@ -82,6 +94,16 @@ class Handler extends ExceptionHandler
                     'success' => false,
                     'message' => 'Erro interno no sistema. Verifique as dependências ou bindings.',
                 ], 500);
+            }
+
+            // Erro de UUID inválido no PostgreSQL
+            if ($exception instanceof QueryException &&
+                str_contains(strtolower($exception->getMessage()), 'invalid input syntax for type uuid')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'O identificador informado é inválido.',
+                    'code' => 400,
+                ], 400);
             }
 
             // Outros erros (fallback)
